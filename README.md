@@ -58,7 +58,7 @@ kubectl create clusterrolebinding <user>-cluster-admin-binding --clusterrole=clu
 ### Install metacontroller
 
 ```sh
-kubectl create -f manifests/
+kubectl apply -f manifests/
 ```
 
 ### Install fission.io and node.js environment
@@ -69,7 +69,7 @@ You could use any method you like to wrap the code up into an HTTP endpoint acce
 the Metacontroller Pod.
 
 ```sh
-kubectl create -f examples/fission/
+kubectl apply -f examples/fission/
 ```
 
 ```sh
@@ -91,11 +91,11 @@ Finally, it scales down the old ReplicaSet.
 ```sh
 ./fission function create --name bluegreen-sync --env node --code examples/bluegreen/bluegreen-sync.js
 ./fission route create --method POST --url /ctl.enisoc.com/bluegreendeployments/sync --function bluegreen-sync
-kubectl create -f examples/bluegreen/bluegreen-controller.yaml
+kubectl apply -f examples/bluegreen/bluegreen-controller.yaml
 ```
 
 ```sh
-kubectl create -f examples/bluegreen/my-bluegreen.yaml
+kubectl apply -f examples/bluegreen/my-bluegreen.yaml
 ```
 
 ### CatSet
@@ -107,11 +107,11 @@ For this example, you need a cluster with a default storage class and a dynamic 
 ```sh
 ./fission function create --name catset-sync --env node --code examples/catset/catset-sync.js
 ./fission route create --method POST --url /ctl.enisoc.com/catsets/sync --function catset-sync
-kubectl create -f examples/catset/catset-controller.yaml
+kubectl apply -f examples/catset/catset-controller.yaml
 ```
 
 ```sh
-kubectl create -f examples/catset/my-catset.yaml
+kubectl apply -f examples/catset/my-catset.yaml
 ```
 
 ### Initializer
@@ -126,7 +126,7 @@ certain Pod fields that normally are immutable.
 ```sh
 ./fission function create --name podhostname-init --env node --code examples/initializer/podhostname-init.js
 ./fission route create --method POST --url /ctl.enisoc.com/podhostname/init --function podhostname-init
-kubectl create -f examples/initializer/podhostname-initializer.yaml
+kubectl apply -f examples/initializer/podhostname-initializer.yaml
 ```
 
 Create a Pod that still uses only the old annotations, rather than the fields.
@@ -134,7 +134,7 @@ Without the initializer, the Pod DNS would not work in v1.7+ because the annotat
 no longer have any effect.
 
 ```sh
-kubectl create -f examples/initializer/bad-pod.yaml
+kubectl apply -f examples/initializer/bad-pod.yaml
 ```
 
 Verify that the initializer properly copied the annotations to fields:
