@@ -30,12 +30,9 @@ import (
 	"k8s.io/metacontroller/apis/metacontroller/v1alpha1"
 )
 
-const (
-	hookTimeout = 10 * time.Second
-)
-
 func callWebhook(webhook *v1alpha1.Webhook, request interface{}, response interface{}) error {
 	url, err := webhookURL(webhook)
+	hookTimeout, err := webhookTimeout(webhook)
 	if err != nil {
 		return err
 	}
@@ -100,4 +97,18 @@ func webhookURL(webhook *v1alpha1.Webhook) (string, error) {
 		protocol = *webhook.Service.Protocol
 	}
 	return fmt.Sprintf("%s://%s.%s:%v%s", protocol, webhook.Service.Name, webhook.Service.Namespace, port, *webhook.Path), nil
+}
+
+func webhookTimeout(webhook *v1alpha1.Webhook) (time.Duration, error) {
+	if webhook.TimeoutSeconds != nil {
+		// Defaults to 10 Seconds to preserve current behavior.
+		return 10 * time.Second, nil
+	}
+
+	if *webhook.TimeoutSeconds <= 0 {
+		// Defaults to 10 Seconds if invalid.
+		return 10 * time.Second, fmt.Errorf("invalid client config: timeoutSecons must be a non-zero positive integer")
+	}
+
+	return time.Duration(*webhook.TimeoutSeconds) * time.Second, nil
 }
