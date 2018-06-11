@@ -49,6 +49,7 @@ func callWebhook(webhook *v1alpha1.Webhook, request interface{}, response interf
 
 	// Send request.
 	client := &http.Client{Timeout: hookTimeout}
+	glog.V(6).Infof("DEBUG: webhook timeout: %v", hookTimeout)
 	resp, err := client.Post(url, "application/json", bytes.NewReader(reqBody))
 	if err != nil {
 		return fmt.Errorf("http error: %v", err)
@@ -100,15 +101,17 @@ func webhookURL(webhook *v1alpha1.Webhook) (string, error) {
 }
 
 func webhookTimeout(webhook *v1alpha1.Webhook) (time.Duration, error) {
-	if webhook.TimeoutSeconds != nil {
+	zero := time.Duration(0)
+
+	if webhook.Timeout == nil {
 		// Defaults to 10 Seconds to preserve current behavior.
 		return 10 * time.Second, nil
 	}
 
-	if *webhook.TimeoutSeconds <= 0 {
+	if (*webhook.Timeout).Duration <= zero {
 		// Defaults to 10 Seconds if invalid.
-		return 10 * time.Second, fmt.Errorf("invalid client config: timeoutSecons must be a non-zero positive integer")
+		return 10 * time.Second, fmt.Errorf("invalid client config: timeout must be a non-zero positive duration")
 	}
 
-	return time.Duration(*webhook.TimeoutSeconds) * time.Second, nil
+	return (*webhook.Timeout).Duration, nil
 }

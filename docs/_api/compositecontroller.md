@@ -47,7 +47,7 @@ spec:
     sync:
       webhook:
         url: http://catset-controller.metacontroller/sync
-        timeoutSeconds: 10
+        timeout: 10s
 ```
 
 ## Spec
@@ -372,4 +372,4 @@ That is, you should [set only the fields that you care about](/api/apply/).
 
 Note that your webhook handler must return a response with a status code of `200`
 to be consider successful. Metacontroller will wait for a response for up to the
-amount defined in `timeoutSeconds`, which defaults to `10` if not defined explicitly.
+amount defined in `timeout`, which defaults to `10s` if not defined explicitly.
