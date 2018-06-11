@@ -38,12 +38,12 @@ type syncHookResponse struct {
 	Children []*unstructured.Unstructured `json:"children"`
 }
 
-func callSyncHook(cc *v1alpha1.CompositeController, request *syncHookRequest) (*syncHookResponse, error) {
+func callSyncHook(cc *v1alpha1.CompositeController, poster common.Poster, request *syncHookRequest) (*syncHookResponse, error) {
 	if cc.Spec.Hooks == nil || cc.Spec.Hooks.Sync == nil {
 		return nil, fmt.Errorf("sync hook not defined")
 	}
 	var response syncHookResponse
-	if err := hooks.Call(cc.Spec.Hooks.Sync, request, &response); err != nil {
+	if err := hooks.Call(cc.Spec.Hooks.Sync, poster, request, &response); err != nil {
 		return nil, fmt.Errorf("sync hook failed: %v", err)
 	}
 	return &response, nil

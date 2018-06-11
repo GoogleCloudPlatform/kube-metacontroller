@@ -39,12 +39,12 @@ type syncHookResponse struct {
 	Attachments []*unstructured.Unstructured `json:"attachments"`
 }
 
-func callSyncHook(dc *v1alpha1.DecoratorController, request *syncHookRequest) (*syncHookResponse, error) {
+func callSyncHook(dc *v1alpha1.DecoratorController, poster common.Poster, request *syncHookRequest) (*syncHookResponse, error) {
 	if dc.Spec.Hooks == nil || dc.Spec.Hooks.Sync == nil {
 		return nil, fmt.Errorf("sync hook not defined")
 	}
 	var response syncHookResponse
-	if err := hooks.Call(dc.Spec.Hooks.Sync, request, &response); err != nil {
+	if err := hooks.Call(dc.Spec.Hooks.Sync, poster, request, &response); err != nil {
 		return nil, fmt.Errorf("sync hook failed: %v", err)
 	}
 	return &response, nil

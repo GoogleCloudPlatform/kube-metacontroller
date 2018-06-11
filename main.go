@@ -17,7 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -42,6 +46,7 @@ import (
 var (
 	discoveryInterval = flag.Duration("discovery-interval", 30*time.Second, "How often to refresh discovery cache to pick up newly-installed resources")
 	informerRelist    = flag.Duration("cache-flush-interval", 30*time.Minute, "How often to flush local caches and relist objects from the API server")
+	caFile            = flag.String("ca", "", "Verify certificates of TLS-enabled secure servers using this CA bundle")
 )
 
 type controller interface {
@@ -73,6 +78,8 @@ func main() {
 	}
 	mcInformerFactory := mcinformers.NewSharedInformerFactory(mcClient, *informerRelist)
 
+	httpClient := createHTTPClient(*caFile)
+
 	// Create dynamic clientset (factory for dynamic clients).
 	dynClient := dynamicclientset.New(config, resources)
 	// Create dynamic informer factory (for sharing dynamic informers).
@@ -81,8 +88,8 @@ func main() {
 	// Start metacontrollers (controllers that spawn controllers).
 	// Each one requests the informers it needs from the factory.
 	controllers := []controller{
-		composite.NewMetacontroller(resources, dynClient, dynInformers, mcInformerFactory, mcClient),
-		decorator.NewMetacontroller(resources, dynClient, dynInformers, mcInformerFactory),
+		composite.NewMetacontroller(resources, dynClient, dynInformers, mcInformerFactory, mcClient, httpClient),
+		decorator.NewMetacontroller(resources, dynClient, dynInformers, mcInformerFactory, httpClient),
 	}
 
 	// Start all requested informers.
@@ -109,4 +116,33 @@ func main() {
 		}(c)
 	}
 	wg.Wait()
+}
+
+// Create HTTP client, optionally adding a custom CA
+func createHTTPClient(ca string) *http.Client {
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	if ca != "" {
+		data, err := ioutil.ReadFile(ca)
+		if err != nil {
+			glog.Fatalf("Can't read CA file %s: %v", ca, err)
+		}
+
+		// an error is okay here, we willl only use the custom CA
+		rootCAs, _ := x509.SystemCertPool()
+		if rootCAs == nil {
+			rootCAs = x509.NewCertPool()
+		}
+
+		if ok := rootCAs.AppendCertsFromPEM(data); !ok {
+			glog.Fatalf("Failed to add CA from %s: %v", ca, err)
+		}
+
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: rootCAs,
+			},
+		}
+	}
+
+	return httpClient
 }

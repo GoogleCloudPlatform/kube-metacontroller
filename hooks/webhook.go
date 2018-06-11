@@ -22,19 +22,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/json"
 
 	"k8s.io/metacontroller/apis/metacontroller/v1alpha1"
+	"k8s.io/metacontroller/controller/common"
 )
 
-const (
-	hookTimeout = 10 * time.Second
-)
-
-func callWebhook(webhook *v1alpha1.Webhook, request interface{}, response interface{}) error {
+func callWebhook(webhook *v1alpha1.Webhook, poster common.Poster, request interface{}, response interface{}) error {
 	url, err := webhookURL(webhook)
 	if err != nil {
 		return err
@@ -51,8 +47,7 @@ func callWebhook(webhook *v1alpha1.Webhook, request interface{}, response interf
 	}
 
 	// Send request.
-	client := &http.Client{Timeout: hookTimeout}
-	resp, err := client.Post(url, "application/json", bytes.NewReader(reqBody))
+	resp, err := poster.Post(url, "application/json", bytes.NewReader(reqBody))
 	if err != nil {
 		return fmt.Errorf("http error: %v", err)
 	}

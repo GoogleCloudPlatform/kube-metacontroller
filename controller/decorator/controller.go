@@ -62,9 +62,11 @@ type decoratorController struct {
 
 	parentInformers common.InformerMap
 	childInformers  common.InformerMap
+
+	poster common.Poster
 }
 
-func newDecoratorController(resources *dynamicdiscovery.ResourceMap, dynClient *dynamicclientset.Clientset, dynInformers *dynamicinformer.SharedInformerFactory, dc *v1alpha1.DecoratorController) (controller *decoratorController, newErr error) {
+func newDecoratorController(resources *dynamicdiscovery.ResourceMap, dynClient *dynamicclientset.Clientset, dynInformers *dynamicinformer.SharedInformerFactory, dc *v1alpha1.DecoratorController, poster common.Poster) (controller *decoratorController, newErr error) {
 	c := &decoratorController{
 		dc:              dc,
 		resources:       resources,
@@ -74,6 +76,8 @@ func newDecoratorController(resources *dynamicdiscovery.ResourceMap, dynClient *
 		childInformers:  make(common.InformerMap),
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "DecoratorController-"+dc.Name),
+
+		poster: poster,
 	}
 
 	var err error
@@ -420,7 +424,7 @@ func (c *decoratorController) syncParentObject(parent *unstructured.Unstructured
 		Object:      parent,
 		Attachments: observedChildren,
 	}
-	syncResult, err := callSyncHook(c.dc, syncRequest)
+	syncResult, err := callSyncHook(c.dc, c.poster, syncRequest)
 	if err != nil {
 		return err
 	}
