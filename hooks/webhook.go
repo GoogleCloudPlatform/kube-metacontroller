@@ -101,17 +101,15 @@ func webhookURL(webhook *v1alpha1.Webhook) (string, error) {
 }
 
 func webhookTimeout(webhook *v1alpha1.Webhook) (time.Duration, error) {
-	zero := time.Duration(0)
-
 	if webhook.Timeout == nil {
 		// Defaults to 10 Seconds to preserve current behavior.
 		return 10 * time.Second, nil
 	}
 
-	if (*webhook.Timeout).Duration <= zero {
+	if webhook.Timeout.Duration <= 0 {
 		// Defaults to 10 Seconds if invalid.
 		return 10 * time.Second, fmt.Errorf("invalid client config: timeout must be a non-zero positive duration")
 	}
 
-	return (*webhook.Timeout).Duration, nil
+	return webhook.Timeout.Duration, nil
 }

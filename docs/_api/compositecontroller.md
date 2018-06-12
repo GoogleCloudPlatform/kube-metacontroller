@@ -371,5 +371,5 @@ sent to [`kubectl apply`][kubectl apply].
 That is, you should [set only the fields that you care about](/api/apply/).
 
 Note that your webhook handler must return a response with a status code of `200`
-to be consider successful. Metacontroller will wait for a response for up to the
-amount defined in `timeout`, which defaults to `10s` if not defined explicitly.
+to be considered successful. Metacontroller will wait for a response for up to the
+amount defined in the [Webhook spec](/api/hook/#webhook).
