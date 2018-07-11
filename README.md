@@ -9,6 +9,8 @@ the add-on works the same in any Kubernetes cluster.
 
 Please see the [documentation site](https://metacontroller.app) for details.
 
+Note: Vendor this package as `k8s.io/metacontroller`.
+
 ## Contact
 
 Please file [GitHub issues](issues) for bugs, feature requests, and proposals.
