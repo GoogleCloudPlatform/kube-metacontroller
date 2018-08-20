@@ -4,7 +4,7 @@ FROM golang:1.10 AS build
 
 COPY . /go/src/k8s.io/metacontroller/
 WORKDIR /go/src/k8s.io/metacontroller/
-RUN go install
+RUN go -gcflags "all=-N -l" -a install
 
 FROM debian:stretch-slim
 COPY --from=build /go/bin/metacontroller /usr/bin/
