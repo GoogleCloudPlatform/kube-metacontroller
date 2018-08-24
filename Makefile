@@ -2,6 +2,9 @@ TAG = dev
 
 PKG        := k8s.io/metacontroller
 API_GROUPS := metacontroller/v1alpha1
+REGISTRY ?= ''
+PROJECT ?= metacontroller
+IMAGE ?= $(REGISTRY)$(PROJECT)/metacontroller
 
 all: install
 
@@ -13,10 +16,10 @@ unit-test:
 	go test ./...
 
 image: generated_files
-	docker build -t metacontroller/metacontroller:$(TAG) .
+	docker build -t $(IMAGE):$(TAG) .
 
 push: image
-	docker push metacontroller/metacontroller:$(TAG)
+	docker push $(IMAGE):$(TAG)
 
 # Code generators
 # https://github.com/kubernetes/community/blob/master/contributors/devel/api_changes.md#generate-code
