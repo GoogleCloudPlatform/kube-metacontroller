@@ -43,6 +43,7 @@ import (
 	dynamicdiscovery "k8s.io/metacontroller/dynamic/discovery"
 	dynamicinformer "k8s.io/metacontroller/dynamic/informer"
 	k8s "k8s.io/metacontroller/third_party/kubernetes"
+	// dynamicobject "k8s.io/metacontroller/dynamic/object"
 )
 
 type parentController struct {
@@ -239,15 +240,23 @@ func (pc *parentController) enqueueParentObject(obj interface{}) {
 }
 
 func (pc *parentController) updateParentObject(old, cur interface{}) {
-	// Ignore updates where the ResourceVersion changed (not a resync)
-	// but the spec hasn't changed (e.g. our own status updates).
-	// TODO(metacontroller#26): Use ObservedGeneration instead of this.
+	// Ignore updates if the spec hasn't changed (e.g. our own status updates).
 	oldParent := old.(*unstructured.Unstructured)
 	curParent := cur.(*unstructured.Unstructured)
-	if curParent.GetResourceVersion() != oldParent.GetResourceVersion() {
+	oldStatus := k8s.GetNestedField(oldParent.UnstructuredContent(), "status")
+
+	// Status subresource is not found, so it means the subresource is not supported.
+	// Fall back to compare the .spec fields.
+	if oldStatus == nil {
 		oldSpec := k8s.GetNestedField(oldParent.UnstructuredContent(), "spec")
 		curSpec := k8s.GetNestedField(curParent.UnstructuredContent(), "spec")
 		if reflect.DeepEqual(oldSpec, curSpec) {
+			return
+		}
+	} else {
+		oldObservedGeneration := k8s.GetNestedField(oldParent.UnstructuredContent(), "status", "observedGeneration")
+		curObservedGeneration := k8s.GetNestedField(curParent.UnstructuredContent(), "status", "observedGeneration")
+		if oldObservedGeneration == curObservedGeneration {
 			return
 		}
 	}
@@ -559,18 +568,31 @@ func (pc *parentController) claimChildren(parent *unstructured.Unstructured) (co
 	return childMap, nil
 }
 
-func (pc *parentController) updateParentStatus(parent *unstructured.Unstructured, status map[string]interface{}) (*unstructured.Unstructured, error) {
-	// Overwrite .status field of parent object without touching other parts.
-	// We can't use Patch() because we need to ensure that the UID matches.
-	// TODO(enisoc): Use /status subresource when that exists.
-	// TODO(enisoc): Update status.observedGeneration when spec.generation starts working.
-	return pc.parentClient.Namespace(parent.GetNamespace()).AtomicUpdate(parent, func(obj *unstructured.Unstructured) bool {
+func updateParentStatusFunc(status map[string]interface{}) func(*unstructured.Unstructured) bool {
+	return func(obj *unstructured.Unstructured) bool {
 		oldStatus := k8s.GetNestedField(obj.UnstructuredContent(), "status")
 		if reflect.DeepEqual(oldStatus, status) {
 			// Nothing to do.
 			return false
 		}
+
 		k8s.SetNestedField(obj.UnstructuredContent(), status, "status")
+		k8s.SetNestedField(obj.UnstructuredContent(), obj.GetGeneration(), "status", "observedGeneration")
 		return true
-	})
+	}
+}
+
+func (pc *parentController) updateParentStatus(parent *unstructured.Unstructured, status map[string]interface{}) (*unstructured.Unstructured, error) {
+	// Overwrite .status field of parent object without touching other parts.
+	// We can't use Patch() because we need to ensure that the UID matches.
+
+	// If status subresource exists, call AtomicStatusUpdate().
+	if pc.resources.Get(pc.parentResource.APIVersion, "status") != nil {
+		return pc.parentClient.Namespace(parent.GetNamespace()).
+			AtomicStatusUpdate(parent, updateParentStatusFunc(status))
+	}
+
+	// Otherwise, call AtomicUpdate().
+	return pc.parentClient.Namespace(parent.GetNamespace()).
+		AtomicUpdate(parent, updateParentStatusFunc(status))
 }
