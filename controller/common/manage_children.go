@@ -52,6 +52,9 @@ func ApplyUpdate(orig, update *unstructured.Unstructured) (*unstructured.Unstruc
 	if err := revertObjectMetaSystemFields(newObj, orig); err != nil {
 		return nil, fmt.Errorf("failed to revert ObjectMeta system fields: %v", err)
 	}
+	if err := revertStatus(newObj, orig); err != nil {
+		return nil, fmt.Errorf("failed to revert .status: %v", err)
+	}
 	dynamicapply.SetLastApplied(newObj, update.UnstructuredContent())
 	return newObj, nil
 }
@@ -91,6 +94,26 @@ func revertObjectMetaSystemFields(newObj, orig *unstructured.Unstructured) error
 			// don't exist.
 			unstructured.RemoveNestedField(newObj.UnstructuredContent(), "metadata", fieldName)
 		}
+	}
+	return nil
+}
+
+// revertStatus overwrites the .status (i.e. all status fields) in newObj to match
+// what it was in orig by resetting .status directly without peeking into each field.
+func revertStatus(newObj, orig *unstructured.Unstructured) error {
+	status, found, err := unstructured.NestedFieldNoCopy(orig.UnstructuredContent(), "status")
+	if err != nil {
+		return fmt.Errorf("can't traverse UnstructuredContent to look for status: %v", err)
+	}
+	if found {
+		// The original had the .status set, so make sure it remains the same.
+		if err := unstructured.SetNestedField(newObj.UnstructuredContent(), status, "status"); err != nil {
+			return fmt.Errorf("can't revert status: %v", err)
+		}
+	} else {
+		// The original had this field unset, so make sure it remains unset.
+		// RemoveNestedField is a no-op if the status already doesn't exist.
+		unstructured.RemoveNestedField(newObj.UnstructuredContent(), "status")
 	}
 	return nil
 }

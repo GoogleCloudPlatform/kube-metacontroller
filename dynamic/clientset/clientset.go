@@ -174,9 +174,10 @@ func (rc *ResourceClient) RemoveFinalizer(orig *unstructured.Unstructured, name 
 		dynamicobject.RemoveFinalizer(obj, name)
 		return true
 	})
+}
 
 // AtomicStatusUpdate is similar to AtomicUpdate, except that it updates status.
-func (rc *ResourceClient) AtomicStatusUpdate(orig *unstructured.Unstructured, update func(obj *unstructured.Unstructured) bool) (result *unstructured.Unstructured, err error) {
+func (rc *ResourceClient) AtomicStatusUpdate(resourceMap *dynamicdiscovery.ResourceMap, parentResource *dynamicdiscovery.APIResource, orig *unstructured.Unstructured, update func(obj *unstructured.Unstructured) bool) (result *unstructured.Unstructured, err error) {
 	name := orig.GetName()
 
 	err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
@@ -193,9 +194,13 @@ func (rc *ResourceClient) AtomicStatusUpdate(orig *unstructured.Unstructured, up
 			result = current
 			return nil
 		}
-		result, err = rc.UpdateStatus(current)
+
+		if resourceMap.HasSubresource(parentResource, "status") {
+			result, err = rc.UpdateStatus(current)
+		} else {
+			result, err = rc.Update(current)
+		}
 		return err
 	})
-	fmt.Printf("\n\n4\n\n")
 	return result, err
 }

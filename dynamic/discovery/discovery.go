@@ -56,7 +56,7 @@ func (r *APIResource) GroupResource() schema.GroupResource {
 }
 
 type groupVersionEntry struct {
-	resources, kinds map[string]*APIResource
+	resources, kinds, subresources map[string]*APIResource
 }
 
 type ResourceMap struct {
@@ -89,6 +89,23 @@ func (rm *ResourceMap) GetKind(apiVersion, kind string) (result *APIResource) {
 	return gv.kinds[kind]
 }
 
+func (rm *ResourceMap) HasSubresource(parentResource *APIResource, subresourceKey string) bool {
+	rm.mutex.RLock()
+	defer rm.mutex.RUnlock()
+
+	gv, ok := rm.groupVersions[parentResource.APIVersion]
+	if !ok {
+		return false
+	}
+
+	for key, _ := range gv.subresources {
+		if key == parentResource.Name+"/"+"status" {
+			return true
+		}
+	}
+	return false
+}
+
 func (rm *ResourceMap) refresh() {
 	// Fetch all API Group-Versions and their resources from the server.
 	// We do this before acquiring the lock so we don't block readers.
@@ -109,8 +126,9 @@ func (rm *ResourceMap) refresh() {
 			panic(fmt.Errorf("received invalid GroupVersion from server: %v", err))
 		}
 		gve := groupVersionEntry{
-			resources: make(map[string]*APIResource, len(group.APIResources)),
-			kinds:     make(map[string]*APIResource, len(group.APIResources)),
+			resources:    make(map[string]*APIResource, len(group.APIResources)),
+			kinds:        make(map[string]*APIResource, len(group.APIResources)),
+			subresources: make(map[string]*APIResource, len(group.APIResources)),
 		}
 		for i := range group.APIResources {
 			apiResource := &APIResource{
@@ -131,6 +149,8 @@ func (rm *ResourceMap) refresh() {
 			// Make sure we don't choose a subresource like "pods/status".
 			if !strings.ContainsRune(apiResource.Name, '/') {
 				gve.kinds[apiResource.Kind] = apiResource
+			} else {
+				gve.subresources[apiResource.Name] = apiResource
 			}
 		}
 		groupVersions[group.GroupVersion] = gve
