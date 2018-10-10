@@ -90,14 +90,14 @@ func revertObjectMetaSystemFields(newObj, orig *unstructured.Unstructured) error
 func revertField(newObj, orig *unstructured.Unstructured, fieldPath ...string) error {
 	field, found, err := unstructured.NestedFieldNoCopy(orig.UnstructuredContent(), fieldPath...)
 	if err != nil {
-		return fmt.Errorf("can't traverse UnstructuredContent to look for field: %v", err)
+		return fmt.Errorf("can't traverse UnstructuredContent to look for field %v: %v", fieldPath, err)
 	}
 	if found {
 		// The original had this field set, so make sure it remains the same.
 		// SetNestedField will recursively ensure the field and all its parent
 		// fields exist, and then set the value.
 		if err := unstructured.SetNestedField(newObj.UnstructuredContent(), field, fieldPath...); err != nil {
-			return fmt.Errorf("can't revert field: %v", err)
+			return fmt.Errorf("can't revert field %v: %v", fieldPath, err)
 		}
 	} else {
 		// The original had this field unset, so make sure it remains unset.

@@ -18,7 +18,6 @@ package discovery
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -33,7 +32,7 @@ import (
 type APIResource struct {
 	metav1.APIResource
 	APIVersion     string
-	SubresourceMap map[string]bool
+	subresourceMap map[string]bool
 }
 
 func (r *APIResource) GroupVersion() schema.GroupVersion {
@@ -58,10 +57,7 @@ func (r *APIResource) GroupResource() schema.GroupResource {
 }
 
 func (r *APIResource) HasSubresource(subresourceKey string) bool {
-	if _, ok := r.SubresourceMap[subresourceKey]; ok {
-		return true
-	}
-	return false
+	return r.subresourceMap[subresourceKey]
 }
 
 type groupVersionEntry struct {
@@ -139,34 +135,24 @@ func (rm *ResourceMap) refresh() {
 			// Remember how to map back from Kind/subresource to resource.
 			// This is different from what RESTMapper provides because we already know
 			// the full GroupVersionKind and just need the resource name.
+			// Remember which resources are subresources, and map the kind to the main resource.
 			if strings.ContainsRune(apiResource.Name, '/') {
-				// Remember which resources are subresources, and map the kind to the main resource.
 				gve.subresources[apiResource.Name] = apiResource
 			} else {
-				// Make sure we don't choose a subresource like "pods/status".
 				gve.kinds[apiResource.Kind] = apiResource
 			}
 		}
 
 		// Group all subresources for a resource.
-		for i := range group.APIResources {
-			apiResource := &APIResource{
-				APIResource: group.APIResources[i],
-				APIVersion:  group.GroupVersion,
+		for apiSubresourceName, _ := range gve.subresources {
+			arr := strings.Split(apiSubresourceName, "/")
+			apiResourceName := arr[0]
+			subresourceKey := arr[1]
+			apiResource := gve.resources[apiResourceName]
+			if len(apiResource.subresourceMap) == 0 {
+				apiResource.subresourceMap = make(map[string]bool)
 			}
-			if !strings.ContainsRune(apiResource.Name, '/') {
-				apiResource.SubresourceMap = make(map[string]bool)
-				for _, apiSubresource := range gve.subresources {
-					split := strings.Split(apiSubresource.Name, "/")
-					resourceName := split[0]
-					subresourceKey := split[1]
-					if apiResource.Name == resourceName {
-						apiResource.SubresourceMap[subresourceKey] = true
-					}
-				}
-				gve.resources[apiResource.Name] = apiResource
-				gve.kinds[apiResource.Kind] = apiResource
-			}
+			apiResource.subresourceMap[subresourceKey] = true
 		}
 
 		groupVersions[group.GroupVersion] = gve
