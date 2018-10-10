@@ -244,9 +244,9 @@ func (pc *parentController) updateParentObject(old, cur interface{}) {
 	oldParent := old.(*unstructured.Unstructured)
 	curParent := cur.(*unstructured.Unstructured)
 	if curParent.GetResourceVersion() != oldParent.GetResourceVersion() {
-		oldGeneration := k8s.GetNestedField(oldParent.UnstructuredContent(), "metadata", "generation")
-		curGeneration := k8s.GetNestedField(curParent.UnstructuredContent(), "metadata", "generation")
-		if oldGeneration == curGeneration {
+		oldSpec := k8s.GetNestedField(oldParent.UnstructuredContent(), "spec")
+		curSpec := k8s.GetNestedField(curParent.UnstructuredContent(), "spec")
+		if reflect.DeepEqual(oldSpec, curSpec) {
 			return
 		}
 	}
@@ -561,7 +561,7 @@ func (pc *parentController) claimChildren(parent *unstructured.Unstructured) (co
 func (pc *parentController) updateParentStatus(parent *unstructured.Unstructured, status map[string]interface{}) (*unstructured.Unstructured, error) {
 	// Overwrite .status field of parent object without touching other parts.
 	// We can't use Patch() because we need to ensure that the UID matches.
-	return pc.parentClient.Namespace(parent.GetNamespace()).AtomicStatusUpdate(pc.resources, pc.parentResource, parent, func(obj *unstructured.Unstructured) bool {
+	return pc.parentClient.Namespace(parent.GetNamespace()).AtomicStatusUpdate(parent, func(obj *unstructured.Unstructured) bool {
 		oldStatus := k8s.GetNestedField(obj.UnstructuredContent(), "status")
 		if reflect.DeepEqual(oldStatus, status) {
 			// Nothing to do.

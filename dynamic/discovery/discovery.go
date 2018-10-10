@@ -18,6 +18,7 @@ package discovery
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -31,7 +32,8 @@ import (
 
 type APIResource struct {
 	metav1.APIResource
-	APIVersion string
+	APIVersion     string
+	SubresourceMap map[string]bool
 }
 
 func (r *APIResource) GroupVersion() schema.GroupVersion {
@@ -53,6 +55,13 @@ func (r *APIResource) GroupVersionResource() schema.GroupVersionResource {
 
 func (r *APIResource) GroupResource() schema.GroupResource {
 	return schema.GroupResource{Group: r.Group, Resource: r.Name}
+}
+
+func (r *APIResource) HasSubresource(subresourceKey string) bool {
+	if _, ok := r.SubresourceMap[subresourceKey]; ok {
+		return true
+	}
+	return false
 }
 
 type groupVersionEntry struct {
@@ -89,23 +98,6 @@ func (rm *ResourceMap) GetKind(apiVersion, kind string) (result *APIResource) {
 	return gv.kinds[kind]
 }
 
-func (rm *ResourceMap) HasSubresource(parentResource *APIResource, subresourceKey string) bool {
-	rm.mutex.RLock()
-	defer rm.mutex.RUnlock()
-
-	gv, ok := rm.groupVersions[parentResource.APIVersion]
-	if !ok {
-		return false
-	}
-
-	for key, _ := range gv.subresources {
-		if key == parentResource.Name+"/"+"status" {
-			return true
-		}
-	}
-	return false
-}
-
 func (rm *ResourceMap) refresh() {
 	// Fetch all API Group-Versions and their resources from the server.
 	// We do this before acquiring the lock so we don't block readers.
@@ -130,6 +122,7 @@ func (rm *ResourceMap) refresh() {
 			kinds:        make(map[string]*APIResource, len(group.APIResources)),
 			subresources: make(map[string]*APIResource, len(group.APIResources)),
 		}
+
 		for i := range group.APIResources {
 			apiResource := &APIResource{
 				APIResource: group.APIResources[i],
@@ -143,16 +136,39 @@ func (rm *ResourceMap) refresh() {
 				apiResource.Version = gv.Version
 			}
 			gve.resources[apiResource.Name] = apiResource
-			// Remember how to map back from Kind to resource.
+			// Remember how to map back from Kind/subresource to resource.
 			// This is different from what RESTMapper provides because we already know
 			// the full GroupVersionKind and just need the resource name.
-			// Make sure we don't choose a subresource like "pods/status".
-			if !strings.ContainsRune(apiResource.Name, '/') {
-				gve.kinds[apiResource.Kind] = apiResource
-			} else {
+			if strings.ContainsRune(apiResource.Name, '/') {
+				// Remember which resources are subresources, and map the kind to the main resource.
 				gve.subresources[apiResource.Name] = apiResource
+			} else {
+				// Make sure we don't choose a subresource like "pods/status".
+				gve.kinds[apiResource.Kind] = apiResource
 			}
 		}
+
+		// Group all subresources for a resource.
+		for i := range group.APIResources {
+			apiResource := &APIResource{
+				APIResource: group.APIResources[i],
+				APIVersion:  group.GroupVersion,
+			}
+			if !strings.ContainsRune(apiResource.Name, '/') {
+				apiResource.SubresourceMap = make(map[string]bool)
+				for _, apiSubresource := range gve.subresources {
+					split := strings.Split(apiSubresource.Name, "/")
+					resourceName := split[0]
+					subresourceKey := split[1]
+					if apiResource.Name == resourceName {
+						apiResource.SubresourceMap[subresourceKey] = true
+					}
+				}
+				gve.resources[apiResource.Name] = apiResource
+				gve.kinds[apiResource.Kind] = apiResource
+			}
+		}
+
 		groupVersions[group.GroupVersion] = gve
 	}
 
