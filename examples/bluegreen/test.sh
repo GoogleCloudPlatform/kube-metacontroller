@@ -29,6 +29,8 @@ until [[ "$(kubectl get rs nginx-blue -o 'jsonpath={.status.readyReplicas}')" -e
 until [[ "$(kubectl get rs nginx-green -o 'jsonpath={.status.replicas}')" -eq 0 ]]; do sleep 1; done
 until [[ "$(kubectl get $bgd nginx -o 'jsonpath={.status.activeColor}')" -eq "blue" ]]; do sleep 1; done
 until [[ "$(kubectl get $bgd nginx -o 'jsonpath={.status.active.availableReplicas}')" -eq 3 ]]; do sleep 1; done
+until [[ "$(kubectl get $bgd nginx -o 'jsonpath={.status.observedGeneration}')" -eq 1 ]]; do sleep 1; done
+
 
 echo "Trigger a rollout..."
 kubectl patch $bgd nginx --type=merge -p '{"spec":{"template":{"metadata":{"labels":{"new":"label"}}}}}'
@@ -38,6 +40,7 @@ until [[ "$(kubectl get rs nginx-green -o 'jsonpath={.status.readyReplicas}')" -
 until [[ "$(kubectl get rs nginx-blue -o 'jsonpath={.status.replicas}')" -eq 0 ]]; do sleep 1; done
 until [[ "$(kubectl get $bgd nginx -o 'jsonpath={.status.activeColor}')" -eq "green" ]]; do sleep 1; done
 until [[ "$(kubectl get $bgd nginx -o 'jsonpath={.status.active.availableReplicas}')" -eq 3 ]]; do sleep 1; done
+until [[ "$(kubectl get $bgd nginx -o 'jsonpath={.status.observedGeneration}')" -eq 2 ]]; do sleep 1; done
 
 echo "Trigger another rollout..."
 kubectl patch $bgd nginx --type=merge -p '{"spec":{"template":{"metadata":{"labels":{"new2":"label2"}}}}}'
@@ -47,3 +50,4 @@ until [[ "$(kubectl get rs nginx-blue -o 'jsonpath={.status.readyReplicas}')" -e
 until [[ "$(kubectl get rs nginx-green -o 'jsonpath={.status.replicas}')" -eq 0 ]]; do sleep 1; done
 until [[ "$(kubectl get $bgd nginx -o 'jsonpath={.status.activeColor}')" -eq "blue" ]]; do sleep 1; done
 until [[ "$(kubectl get $bgd nginx -o 'jsonpath={.status.active.availableReplicas}')" -eq 3 ]]; do sleep 1; done
+until [[ "$(kubectl get $bgd nginx -o 'jsonpath={.status.observedGeneration}')" -eq 3 ]]; do sleep 1; done

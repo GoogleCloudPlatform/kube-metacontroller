@@ -132,10 +132,9 @@ func (rm *ResourceMap) refresh() {
 				apiResource.Version = gv.Version
 			}
 			gve.resources[apiResource.Name] = apiResource
-			// Remember how to map back from Kind/subresource to resource.
+			// Remember which resources are subresources, and map the kind to the main resource.
 			// This is different from what RESTMapper provides because we already know
 			// the full GroupVersionKind and just need the resource name.
-			// Remember which resources are subresources, and map the kind to the main resource.
 			if strings.ContainsRune(apiResource.Name, '/') {
 				gve.subresources[apiResource.Name] = apiResource
 			} else {
@@ -149,7 +148,10 @@ func (rm *ResourceMap) refresh() {
 			apiResourceName := arr[0]
 			subresourceKey := arr[1]
 			apiResource := gve.resources[apiResourceName]
-			if len(apiResource.subresourceMap) == 0 {
+			if apiResource == nil {
+				continue
+			}
+			if apiResource.subresourceMap == nil {
 				apiResource.subresourceMap = make(map[string]bool)
 			}
 			apiResource.subresourceMap[subresourceKey] = true
