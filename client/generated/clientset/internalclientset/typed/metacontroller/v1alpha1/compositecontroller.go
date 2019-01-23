@@ -30,7 +30,7 @@ import (
 // CompositeControllersGetter has a method to return a CompositeControllerInterface.
 // A group's client should implement this interface.
 type CompositeControllersGetter interface {
-	CompositeControllers() CompositeControllerInterface
+	CompositeControllers(namespace string) CompositeControllerInterface
 }
 
 // CompositeControllerInterface has methods to work with CompositeController resources.
@@ -49,12 +49,14 @@ type CompositeControllerInterface interface {
 // compositeControllers implements CompositeControllerInterface
 type compositeControllers struct {
 	client rest.Interface
+	ns     string
 }
 
 // newCompositeControllers returns a CompositeControllers
-func newCompositeControllers(c *MetacontrollerV1alpha1Client) *compositeControllers {
+func newCompositeControllers(c *MetacontrollerV1alpha1Client, namespace string) *compositeControllers {
 	return &compositeControllers{
 		client: c.RESTClient(),
+		ns:     namespace,
 	}
 }
 
@@ -62,6 +64,7 @@ func newCompositeControllers(c *MetacontrollerV1alpha1Client) *compositeControll
 func (c *compositeControllers) Get(name string, options v1.GetOptions) (result *v1alpha1.CompositeController, err error) {
 	result = &v1alpha1.CompositeController{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("compositecontrollers").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -74,6 +77,7 @@ func (c *compositeControllers) Get(name string, options v1.GetOptions) (result *
 func (c *compositeControllers) List(opts v1.ListOptions) (result *v1alpha1.CompositeControllerList, err error) {
 	result = &v1alpha1.CompositeControllerList{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("compositecontrollers").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -85,6 +89,7 @@ func (c *compositeControllers) List(opts v1.ListOptions) (result *v1alpha1.Compo
 func (c *compositeControllers) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
+		Namespace(c.ns).
 		Resource("compositecontrollers").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -94,6 +99,7 @@ func (c *compositeControllers) Watch(opts v1.ListOptions) (watch.Interface, erro
 func (c *compositeControllers) Create(compositeController *v1alpha1.CompositeController) (result *v1alpha1.CompositeController, err error) {
 	result = &v1alpha1.CompositeController{}
 	err = c.client.Post().
+		Namespace(c.ns).
 		Resource("compositecontrollers").
 		Body(compositeController).
 		Do().
@@ -105,6 +111,7 @@ func (c *compositeControllers) Create(compositeController *v1alpha1.CompositeCon
 func (c *compositeControllers) Update(compositeController *v1alpha1.CompositeController) (result *v1alpha1.CompositeController, err error) {
 	result = &v1alpha1.CompositeController{}
 	err = c.client.Put().
+		Namespace(c.ns).
 		Resource("compositecontrollers").
 		Name(compositeController.Name).
 		Body(compositeController).
@@ -116,6 +123,7 @@ func (c *compositeControllers) Update(compositeController *v1alpha1.CompositeCon
 // Delete takes name of the compositeController and deletes it. Returns an error if one occurs.
 func (c *compositeControllers) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("compositecontrollers").
 		Name(name).
 		Body(options).
@@ -126,6 +134,7 @@ func (c *compositeControllers) Delete(name string, options *v1.DeleteOptions) er
 // DeleteCollection deletes a collection of objects.
 func (c *compositeControllers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("compositecontrollers").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -137,6 +146,7 @@ func (c *compositeControllers) DeleteCollection(options *v1.DeleteOptions, listO
 func (c *compositeControllers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CompositeController, err error) {
 	result = &v1alpha1.CompositeController{}
 	err = c.client.Patch(pt).
+		Namespace(c.ns).
 		Resource("compositecontrollers").
 		SubResource(subresources...).
 		Name(name).

@@ -29,8 +29,8 @@ import (
 type DecoratorControllerLister interface {
 	// List lists all DecoratorControllers in the indexer.
 	List(selector labels.Selector) (ret []*v1alpha1.DecoratorController, err error)
-	// Get retrieves the DecoratorController from the index for a given name.
-	Get(name string) (*v1alpha1.DecoratorController, error)
+	// DecoratorControllers returns an object that can list and get DecoratorControllers.
+	DecoratorControllers(namespace string) DecoratorControllerNamespaceLister
 	DecoratorControllerListerExpansion
 }
 
@@ -52,9 +52,38 @@ func (s *decoratorControllerLister) List(selector labels.Selector) (ret []*v1alp
 	return ret, err
 }
 
-// Get retrieves the DecoratorController from the index for a given name.
-func (s *decoratorControllerLister) Get(name string) (*v1alpha1.DecoratorController, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
+// DecoratorControllers returns an object that can list and get DecoratorControllers.
+func (s *decoratorControllerLister) DecoratorControllers(namespace string) DecoratorControllerNamespaceLister {
+	return decoratorControllerNamespaceLister{indexer: s.indexer, namespace: namespace}
+}
+
+// DecoratorControllerNamespaceLister helps list and get DecoratorControllers.
+type DecoratorControllerNamespaceLister interface {
+	// List lists all DecoratorControllers in the indexer for a given namespace.
+	List(selector labels.Selector) (ret []*v1alpha1.DecoratorController, err error)
+	// Get retrieves the DecoratorController from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.DecoratorController, error)
+	DecoratorControllerNamespaceListerExpansion
+}
+
+// decoratorControllerNamespaceLister implements the DecoratorControllerNamespaceLister
+// interface.
+type decoratorControllerNamespaceLister struct {
+	indexer   cache.Indexer
+	namespace string
+}
+
+// List lists all DecoratorControllers in the indexer for a given namespace.
+func (s decoratorControllerNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.DecoratorController, err error) {
+	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1alpha1.DecoratorController))
+	})
+	return ret, err
+}
+
+// Get retrieves the DecoratorController from the indexer for a given namespace and name.
+func (s decoratorControllerNamespaceLister) Get(name string) (*v1alpha1.DecoratorController, error) {
+	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}

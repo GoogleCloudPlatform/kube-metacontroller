@@ -91,7 +91,10 @@ func main() {
 	if err != nil {
 		glog.Fatalf("Can't create client for api %s: %v", v1alpha1.SchemeGroupVersion, err)
 	}
-	mcInformerFactory := mcinformers.NewSharedInformerFactory(mcClient, *informerRelist)
+	// namespace must be supplied via an external parameter
+	// we've hardcoded the names space as "todo"
+	nsOpt := mcinformers.WithNamespace("todo")
+	mcInformerFactory := mcinformers.NewSharedInformerFactoryWithOptions(mcClient, *informerRelist, nsOpt)
 
 	// Create dynamic clientset (factory for dynamic clients).
 	dynClient, err := dynamicclientset.New(config, resources)

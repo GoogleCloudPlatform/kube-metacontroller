@@ -30,7 +30,7 @@ import (
 // DecoratorControllersGetter has a method to return a DecoratorControllerInterface.
 // A group's client should implement this interface.
 type DecoratorControllersGetter interface {
-	DecoratorControllers() DecoratorControllerInterface
+	DecoratorControllers(namespace string) DecoratorControllerInterface
 }
 
 // DecoratorControllerInterface has methods to work with DecoratorController resources.
@@ -49,12 +49,14 @@ type DecoratorControllerInterface interface {
 // decoratorControllers implements DecoratorControllerInterface
 type decoratorControllers struct {
 	client rest.Interface
+	ns     string
 }
 
 // newDecoratorControllers returns a DecoratorControllers
-func newDecoratorControllers(c *MetacontrollerV1alpha1Client) *decoratorControllers {
+func newDecoratorControllers(c *MetacontrollerV1alpha1Client, namespace string) *decoratorControllers {
 	return &decoratorControllers{
 		client: c.RESTClient(),
+		ns:     namespace,
 	}
 }
 
@@ -62,6 +64,7 @@ func newDecoratorControllers(c *MetacontrollerV1alpha1Client) *decoratorControll
 func (c *decoratorControllers) Get(name string, options v1.GetOptions) (result *v1alpha1.DecoratorController, err error) {
 	result = &v1alpha1.DecoratorController{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("decoratorcontrollers").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -74,6 +77,7 @@ func (c *decoratorControllers) Get(name string, options v1.GetOptions) (result *
 func (c *decoratorControllers) List(opts v1.ListOptions) (result *v1alpha1.DecoratorControllerList, err error) {
 	result = &v1alpha1.DecoratorControllerList{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("decoratorcontrollers").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -85,6 +89,7 @@ func (c *decoratorControllers) List(opts v1.ListOptions) (result *v1alpha1.Decor
 func (c *decoratorControllers) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
+		Namespace(c.ns).
 		Resource("decoratorcontrollers").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -94,6 +99,7 @@ func (c *decoratorControllers) Watch(opts v1.ListOptions) (watch.Interface, erro
 func (c *decoratorControllers) Create(decoratorController *v1alpha1.DecoratorController) (result *v1alpha1.DecoratorController, err error) {
 	result = &v1alpha1.DecoratorController{}
 	err = c.client.Post().
+		Namespace(c.ns).
 		Resource("decoratorcontrollers").
 		Body(decoratorController).
 		Do().
@@ -105,6 +111,7 @@ func (c *decoratorControllers) Create(decoratorController *v1alpha1.DecoratorCon
 func (c *decoratorControllers) Update(decoratorController *v1alpha1.DecoratorController) (result *v1alpha1.DecoratorController, err error) {
 	result = &v1alpha1.DecoratorController{}
 	err = c.client.Put().
+		Namespace(c.ns).
 		Resource("decoratorcontrollers").
 		Name(decoratorController.Name).
 		Body(decoratorController).
@@ -116,6 +123,7 @@ func (c *decoratorControllers) Update(decoratorController *v1alpha1.DecoratorCon
 // Delete takes name of the decoratorController and deletes it. Returns an error if one occurs.
 func (c *decoratorControllers) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("decoratorcontrollers").
 		Name(name).
 		Body(options).
@@ -126,6 +134,7 @@ func (c *decoratorControllers) Delete(name string, options *v1.DeleteOptions) er
 // DeleteCollection deletes a collection of objects.
 func (c *decoratorControllers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("decoratorcontrollers").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -137,6 +146,7 @@ func (c *decoratorControllers) DeleteCollection(options *v1.DeleteOptions, listO
 func (c *decoratorControllers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.DecoratorController, err error) {
 	result = &v1alpha1.DecoratorController{}
 	err = c.client.Patch(pt).
+		Namespace(c.ns).
 		Resource("decoratorcontrollers").
 		SubResource(subresources...).
 		Name(name).

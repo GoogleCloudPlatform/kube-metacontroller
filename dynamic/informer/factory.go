@@ -75,6 +75,7 @@ func (f *SharedInformerFactory) Resource(apiVersion, resource string) (*Resource
 	if err != nil {
 		return nil, fmt.Errorf("can't create client for %v shared informer: %v", key, err)
 	}
+	client = client.Namespace("todo")
 	stopCh := make(chan struct{})
 
 	// closeFn is called by users of the shared informer (via Close()) to indicate

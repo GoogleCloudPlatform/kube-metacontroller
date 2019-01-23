@@ -18,12 +18,12 @@ package composite
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/labels"
 	"sync"
 
 	"github.com/golang/glog"
 
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -146,9 +146,8 @@ func (mc *Metacontroller) sync(key string) error {
 	}
 
 	glog.V(4).Infof("sync CompositeController %v", name)
-
-	cc, err := mc.ccLister.Get(name)
-	if apierrors.IsNotFound(err) {
+	ccc, err := mc.ccLister.List(labels.SelectorFromSet(nil))
+	if len(ccc) == 0 {
 		glog.V(4).Infof("CompositeController %v has been deleted", name)
 		// Stop and remove the controller if it exists.
 		if pc, ok := mc.parentControllers[name]; ok {
@@ -160,8 +159,21 @@ func (mc *Metacontroller) sync(key string) error {
 	if err != nil {
 		return err
 	}
-	return mc.syncCompositeController(cc)
+	for i := 0; i < len(ccc); i++ {
+		cc := ccc[i]
+		if (cc.Namespace + "/" + cc.Name) == key{
+			return mc.syncCompositeController(ccc[i])
+		}
+	}
+	glog.V(4).Infof("CompositeController %v has been deleted", name)
+	// Stop and remove the controller if it exists.
+	if pc, ok := mc.parentControllers[name]; ok {
+		pc.Stop()
+		delete(mc.parentControllers, name)
+	}
+	return nil
 }
+
 
 func (mc *Metacontroller) syncCompositeController(cc *v1alpha1.CompositeController) error {
 	if pc, ok := mc.parentControllers[cc.Name]; ok {

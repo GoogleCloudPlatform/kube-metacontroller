@@ -169,7 +169,7 @@ func (rm *ResourceMap) refresh() {
 func (rm *ResourceMap) Start(refreshInterval time.Duration) {
 	rm.stopCh = make(chan struct{})
 	rm.doneCh = make(chan struct{})
-
+	rm.refresh()
 	go func() {
 		defer close(rm.doneCh)
 

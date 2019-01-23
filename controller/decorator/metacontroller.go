@@ -133,27 +133,8 @@ func (mc *Metacontroller) processNextWorkItem() bool {
 }
 
 func (mc *Metacontroller) sync(key string) error {
-	_, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		return err
-	}
-
-	glog.V(4).Infof("sync DecoratorController %v", name)
-
-	dc, err := mc.dcLister.Get(name)
-	if apierrors.IsNotFound(err) {
-		glog.V(4).Infof("DecoratorController %v has been deleted", name)
-		// Stop and remove the controller if it exists.
-		if c, ok := mc.decoratorControllers[name]; ok {
-			c.Stop()
-			delete(mc.decoratorControllers, name)
-		}
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	return mc.syncDecoratorController(dc)
+	// we are not using it for the moment
+	return apierrors.NewGone("Sync must be re-implemented")
 }
 
 func (mc *Metacontroller) syncDecoratorController(dc *v1alpha1.DecoratorController) error {

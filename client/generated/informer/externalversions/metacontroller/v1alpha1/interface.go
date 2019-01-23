@@ -45,7 +45,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 
 // CompositeControllers returns a CompositeControllerInformer.
 func (v *version) CompositeControllers() CompositeControllerInformer {
-	return &compositeControllerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+	return &compositeControllerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ControllerRevisions returns a ControllerRevisionInformer.
@@ -55,5 +55,5 @@ func (v *version) ControllerRevisions() ControllerRevisionInformer {
 
 // DecoratorControllers returns a DecoratorControllerInformer.
 func (v *version) DecoratorControllers() DecoratorControllerInformer {
-	return &decoratorControllerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+	return &decoratorControllerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

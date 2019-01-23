@@ -22,6 +22,10 @@ package v1alpha1
 // CompositeControllerLister.
 type CompositeControllerListerExpansion interface{}
 
+// CompositeControllerNamespaceListerExpansion allows custom methods to be added to
+// CompositeControllerNamespaceLister.
+type CompositeControllerNamespaceListerExpansion interface{}
+
 // ControllerRevisionListerExpansion allows custom methods to be added to
 // ControllerRevisionLister.
 type ControllerRevisionListerExpansion interface{}
@@ -33,3 +37,7 @@ type ControllerRevisionNamespaceListerExpansion interface{}
 // DecoratorControllerListerExpansion allows custom methods to be added to
 // DecoratorControllerLister.
 type DecoratorControllerListerExpansion interface{}
+
+// DecoratorControllerNamespaceListerExpansion allows custom methods to be added to
+// DecoratorControllerNamespaceLister.
+type DecoratorControllerNamespaceListerExpansion interface{}
