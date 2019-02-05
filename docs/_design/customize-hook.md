@@ -1,6 +1,6 @@
-### CompositeController changes
+### Controller changes
 
-The composite controller `sync` and `finalize` hooks will contain a new field, `related`.
+The composite and decorator controller `sync` and `finalize` hooks will contain a new field, `related`.
 
 This field is in the same format as `children` / `ChildMap`.
 
