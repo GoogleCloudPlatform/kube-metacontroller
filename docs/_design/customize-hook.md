@@ -4,9 +4,9 @@ The composite controller `sync` and `finalize` hooks will contain a new field, `
 
 This field is in the same format as `children` / `ChildMap`.
 
-### Related Hook
+### Customize Hook
 
-If the `related` hook is defined, Metacontroller will ask for which related
+If the `customize` hook is defined, Metacontroller will ask for which related
 objects, or classes of objects that your `sync` and `finalize` hooks need to
 know about.
 
@@ -16,14 +16,16 @@ controller that lets you specify ConfigMaps to be placed in every Namespace.
 Another use-case is being able to reference other objects, e.g. the `env`
 section from a core `Pod` object.
 
-If you don't define a `related` hook, then the related section of the hooks will
+If you don't define a `customize` hook, then the related section of the hooks will
 be empty.
 
-The `related` hook will not provide any information about the current state of
+The `customize` hook will not provide any information about the current state of
 the cluster. Thus, the set of related objects may only depend on the state of
 the parent object.
 
-#### Related Hook Request
+This hook may also accept other fields in future, for other customizations.
+
+#### Customize Hook Request
 
 A separate request will be sent for each parent object,
 so your hook only needs to think about one parent at a time.
@@ -36,7 +38,7 @@ will be a JSON object with the following fields:
 | `controller` | The whole CompositeController object, like what you might get from `kubectl get compositecontroller <name> -o json`. |
 | `parent` | The parent object, like what you might get from `kubectl get <parent-resource> <parent-name> -o json`. |
 
-#### Related Hook Response
+#### Customize Hook Response
 
 The body of your response should be a JSON object with the following fields:
 
