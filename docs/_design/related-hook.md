@@ -50,8 +50,8 @@ not an associative array.
 Each labelSelector object should be a JSON object with the following fields:
 | Field | Description |
 | ----- | ----------- |
-| `apiVersion` | The API Version |
-| `kind` | The API Kind |
+| `apiVersion` | The API `<group>/<version>` of the parent resource, or just `<version>` for core APIs. (e.g. `v1`, `apps/v1`, `batch/v1`) |
+| `resource`   | The canonical, lowercase, plural name of the parent resource. (e.g. `deployments`, `replicasets`, `statefulsets`) |
 | `labelSelector` | A `v1.LabelSelector` object. |
 | `namespace` | Optional. The Namespace to select in |
 
