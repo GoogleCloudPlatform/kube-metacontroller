@@ -42,12 +42,12 @@ The body of your response should be a JSON object with the following fields:
 
 | Field | Description |
 | ----- | ----------- |
-| `labelSelectors` | A list of JSON objects representing all the desired label selectors for this parent object. |
+| `relatedResources` | A list of JSON objects representing all the desired related resource label selectors. |
 
-The `labelSelectors` field should contain a flat list of objects,
+The `relatedResources` field should contain a flat list of objects,
 not an associative array.
 
-Each labelSelector object should be a JSON object with the following fields:
+Each resource rule object should be a JSON object with the following fields:
 | Field | Description |
 | ----- | ----------- |
 | `apiVersion` | The API `<group>/<version>` of the parent resource, or just `<version>` for core APIs. (e.g. `v1`, `apps/v1`, `batch/v1`) |
