@@ -1,3 +1,9 @@
+### CompositeController changes
+
+The composite controller `sync` and `finalize` hooks will contain a new field, `related`.
+
+This field is in the same format as `children` / `ChildMap`.
+
 ### Related Hook
 
 If the `related` hook is defined, Metacontroller will ask for which related
