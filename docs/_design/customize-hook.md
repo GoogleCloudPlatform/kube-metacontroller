@@ -1,3 +1,6 @@
+---
+title: Customize Hook
+---
 ### Controller changes
 
 The composite and decorator controller `sync` and `finalize` hooks will contain a new field, `related`.
