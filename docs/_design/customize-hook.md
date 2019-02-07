@@ -59,6 +59,7 @@ Each resource rule object should be a JSON object with the following fields:
 | `resource`   | The canonical, lowercase, plural name of the parent resource. (e.g. `deployments`, `replicasets`, `statefulsets`) |
 | `labelSelector` | A `v1.LabelSelector` object. |
 | `namespace` | Optional. The Namespace to select in |
+| `names` | Optional. A list of strings, representing individual objects to return |
 
 If the parent resource is cluster scoped and the related resource is namespaced,
 the namespace may be used to restrict which objects to look at. If the parent
