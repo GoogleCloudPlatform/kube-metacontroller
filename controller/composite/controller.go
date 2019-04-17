@@ -66,6 +66,7 @@ type parentController struct {
 	childInformers common.InformerMap
 
 	finalizer *finalizer.Manager
+	customizeCache CustomizeResponseCache
 }
 
 func newParentController(resources *dynamicdiscovery.ResourceMap, dynClient *dynamicclientset.Clientset, dynInformers *dynamicinformer.SharedInformerFactory, mcClient mcclientset.Interface, revisionLister mclisters.ControllerRevisionLister, cc *v1alpha1.CompositeController) (pc *parentController, newErr error) {
@@ -124,6 +125,7 @@ func newParentController(resources *dynamicdiscovery.ResourceMap, dynClient *dyn
 			Name:    "metacontroller.app/compositecontroller-" + cc.Name,
 			Enabled: cc.Spec.Hooks.Finalize != nil,
 		},
+		customizeCache: make(CustomizeResponseCache),
 	}
 
 	return pc, nil
@@ -615,19 +617,11 @@ func (pc *parentController) claimChildren(parent *unstructured.Unstructured) (co
 }
 
 func (pc *parentController) getRelatedObjects(parent *unstructured.Unstructured) (common.ChildMap, error) {
-	customizeHookRequest := CustomizeHookRequest{
-		Controller: pc.cc,
-		Parent:     parent,
-	}
 
-	customizeHookResponse, err := callCustomizeHook(pc.cc, &customizeHookRequest)
+	customizeHookResponse, err := pc.getCustomizeHookResponse(parent)
 
 	if err != nil {
 		return nil, err
-	}
-
-	if customizeHookResponse.RelatedResourceRules == nil {
-		return nil, nil
 	}
 
 	parentNamespace := parent.GetNamespace()
@@ -651,7 +645,7 @@ func (pc *parentController) getRelatedObjects(parent *unstructured.Unstructured)
 			if len(relatedRule.Namespace) != 0 && relatedRule.Namespace != parentNamespace {
 				return nil, fmt.Errorf("requested related object namespace %s differs from parent object namespace %s", relatedRule.Namespace, parentNamespace)
 			}
-			all, err = informer.Lister().ListNamespace(parentNamespace, labels.Everything()) //selector)
+			all, err = informer.Lister().ListNamespace(parentNamespace, selector)
 			glog.Infof("Searched for %+v, found %+v", selector, all)
 		} else if len(relatedRule.Namespace) != 0 {
 			all, err = informer.Lister().ListNamespace(relatedRule.Namespace, selector)
@@ -679,6 +673,28 @@ func (pc *parentController) getRelatedObjects(parent *unstructured.Unstructured)
 	}
 
 	return childMap, err
+}
+
+func (pc *parentController) getCachedCustomizeHookResponse(parent *unstructured.Unstructured) *CustomizeHookResponse {
+	return pc.customizeCache.Get(parent.GetName(), parent.GetGeneration())
+}
+
+func (pc *parentController) getCustomizeHookResponse(parent *unstructured.Unstructured) (*CustomizeHookResponse, error) {
+	cached := pc.getCachedCustomizeHookResponse(parent)
+	if cached != nil {
+		return cached, nil
+	} else {
+		response, err := callCustomizeHook(pc.cc, &CustomizeHookRequest{
+			Controller: pc.cc,
+			Parent:     parent,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		pc.customizeCache.Add(parent.GetName(), parent.GetGeneration(), response)
+		return response, nil
+	}
 }
 
 func (pc *parentController) onRelatedAdd(obj interface{}) {
@@ -743,12 +759,9 @@ func (pc *parentController) findRelatedParents(related *unstructured.Unstructure
 	MATCHPARENTS:
 	for _, parent := range parents {
 		// TODO: We shouldn't call the customize hook here, but use cached results
-		customizeHookResponse, err := callCustomizeHook(pc.cc, &CustomizeHookRequest{
-			Controller: pc.cc,
-			Parent:     parent,
-		})
+		customizeHookResponse := pc.getCachedCustomizeHookResponse(parent)
 
-		if err != nil {
+		if customizeHookResponse == nil {
 			continue
 		}
 
