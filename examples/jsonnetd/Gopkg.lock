@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/google/go-jsonnet"
   packages = [".","ast","parser"]
-  revision = "c7a5b68f1c7a2f5e69736e489790f58edd27f7f3"
+  revision = "c195e570ef06c76839dda7f394907a4a7bf3861d"
 
 [solve-meta]
   analyzer-name = "dep"
