@@ -36,6 +36,7 @@ import (
 
 	"metacontroller.app/apis/metacontroller/v1alpha1"
 	"metacontroller.app/controller/common"
+	"metacontroller.app/controller/common/customize"
 	"metacontroller.app/controller/common/finalizer"
 	dynamicclientset "metacontroller.app/dynamic/clientset"
 	dynamicdiscovery "metacontroller.app/dynamic/discovery"
@@ -67,6 +68,7 @@ type decoratorController struct {
 	childInformers  common.InformerMap
 
 	finalizer *finalizer.Manager
+	customize customize.Manager
 }
 
 func newDecoratorController(resources *dynamicdiscovery.ResourceMap, dynClient *dynamicclientset.Clientset, dynInformers *dynamicinformer.SharedInformerFactory, dc *v1alpha1.DecoratorController) (controller *decoratorController, newErr error) {
@@ -84,6 +86,17 @@ func newDecoratorController(resources *dynamicdiscovery.ResourceMap, dynClient *
 			Enabled: dc.Spec.Hooks.Finalize != nil,
 		},
 	}
+
+	customize := customize.NewCustomizeManager(
+		dc.Name,
+		c.enqueueParentObject,
+		dc,
+		dynClient,
+		dynInformers,
+		c.parentInformers,
+		c.parentKinds,
+	)
+	c.customize = customize
 
 	var err error
 
@@ -457,11 +470,17 @@ func (c *decoratorController) syncParentObject(parent *unstructured.Unstructured
 		return err
 	}
 
+	relatedObjects, err := c.customize.GetRelatedObjects(parent)
+	if err != nil {
+		return err
+	}
+
 	// Call the sync hook to get the desired annotations and children.
 	syncRequest := &SyncHookRequest{
 		Controller:  c.dc,
 		Object:      parent,
 		Attachments: observedChildren,
+		Related:     relatedObjects,
 	}
 	syncResult, err := c.callSyncHook(syncRequest)
 	if err != nil {
