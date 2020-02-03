@@ -57,7 +57,7 @@ spec:
     spec:
       containers:
       - name: hooks
-        image: metacontroller/jsonnetd:0.2
+        image: metacontroller/jsonnetd:0.3
         imagePullPolicy: Always
         workingDir: /hooks
         volumeMounts:
