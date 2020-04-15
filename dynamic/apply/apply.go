@@ -234,7 +234,15 @@ func detectListMapKey(lists ...[]interface{}) string {
 			if commonKeys == nil {
 				commonKeys = make(map[string]bool, len(obj))
 				for key := range obj {
-					commonKeys[key] = true
+					// Make sure key value is a scalar
+					switch obj[key].(type) {
+					case map[string]interface{}:
+						continue
+					case []interface{}:
+						continue
+					default:
+						commonKeys[key] = true
+					}
 				}
 				continue
 			}

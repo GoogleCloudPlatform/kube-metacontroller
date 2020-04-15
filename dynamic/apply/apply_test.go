@@ -149,6 +149,33 @@ func TestMerge(t *testing.T) {
         ]
       }`,
 		},
+		{
+			name: "replace list of objects that looks like a list-map, but has object mergeKey",
+			observed: `{
+        "notListMap": [
+          {"name": {"value": "add"}},
+          {"name": {"value": "remove"}},
+          {"name": {"value": "merge"}, "nested": {"keep": "other"}}
+        ]
+      }`,
+			lastApplied: `{
+        "notListMap": [
+          {"name": {"value": "remove"}}
+        ]
+      }`,
+			desired: `{
+        "notListMap": [
+          {"name": {"value": "add"}},
+          {"name": {"value": "merge"}, "nested": {"add": "new"}}
+        ]
+      }`,
+			want: `{
+        "notListMap": [
+          {"name": {"value": "add"}},
+          {"name": {"value": "merge"}, "nested": {"add": "new"}}
+        ]
+      }`,
+		},
 	}
 
 	for _, tc := range table {
