@@ -37,6 +37,7 @@ import (
 	mcclientset "metacontroller.app/client/generated/clientset/internalclientset"
 	mclisters "metacontroller.app/client/generated/lister/metacontroller/v1alpha1"
 	"metacontroller.app/controller/common"
+	"metacontroller.app/controller/common/customize"
 	"metacontroller.app/controller/common/finalizer"
 	dynamicclientset "metacontroller.app/dynamic/clientset"
 	dynamiccontrollerref "metacontroller.app/dynamic/controllerref"
@@ -64,7 +65,8 @@ type parentController struct {
 	updateStrategy updateStrategyMap
 	childInformers common.InformerMap
 
-	finalizer *finalizer.Manager
+	finalizer      *finalizer.Manager
+	customize      customize.Manager
 }
 
 func newParentController(resources *dynamicdiscovery.ResourceMap, dynClient *dynamicclientset.Clientset, dynInformers *dynamicinformer.SharedInformerFactory, mcClient mcclientset.Interface, revisionLister mclisters.ControllerRevisionLister, cc *v1alpha1.CompositeController) (pc *parentController, newErr error) {
@@ -106,6 +108,11 @@ func newParentController(resources *dynamicdiscovery.ResourceMap, dynClient *dyn
 		childInformers.Set(child.APIVersion, child.Resource, childInformer)
 	}
 
+	parentResources := make(common.GroupKindMap)
+	parentResources.Set(parentResource.Group, parentResource.Kind, parentResource)
+	parentInformers := make(common.InformerMap)
+	parentInformers.Set(parentResource.Group, parentResource.Name, parentInformer)
+
 	pc = &parentController{
 		cc:             cc,
 		resources:      resources,
@@ -124,12 +131,24 @@ func newParentController(resources *dynamicdiscovery.ResourceMap, dynClient *dyn
 		},
 	}
 
+	pc.customize = customize.NewCustomizeManager(
+		parentResource.Kind,
+		pc.enqueueParentObject,
+		cc,
+		dynClient,
+		dynInformers,
+		parentInformers,
+		parentResources,
+	)
+
 	return pc, nil
 }
 
 func (pc *parentController) Start() {
 	pc.stopCh = make(chan struct{})
 	pc.doneCh = make(chan struct{})
+
+	pc.customize.Start(pc.stopCh)
 
 	// Install event handlers. CompositeControllers can be created at any time,
 	// so we have to assume the shared informers are already running. We can't
@@ -433,10 +452,15 @@ func (pc *parentController) syncParentObject(parent *unstructured.Unstructured) 
 		return err
 	}
 
+	relatedObjects, err := pc.customize.GetRelatedObjects(parent)
+	if err != nil {
+		return err
+	}
+
 	// Reconcile ControllerRevisions belonging to this parent.
 	// Call the sync hook for each revision, then compute the overall status and
 	// desired children, accounting for any rollout in progress.
-	syncResult, err := pc.syncRevisions(parent, observedChildren)
+	syncResult, err := pc.syncRevisions(parent, observedChildren, relatedObjects)
 	if err != nil {
 		return err
 	}

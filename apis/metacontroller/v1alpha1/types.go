@@ -34,6 +34,13 @@ type CompositeController struct {
 	Status CompositeControllerStatus `json:"status,omitempty"`
 }
 
+func (cc *CompositeController) GetCustomizeHook() *Hook {
+	if cc.Spec.Hooks == nil {
+		return nil
+	}
+	return cc.Spec.Hooks.Customize
+}
+
 type CompositeControllerSpec struct {
 	ParentResource CompositeControllerParentResourceRule  `json:"parentResource"`
 	ChildResources []CompositeControllerChildResourceRule `json:"childResources,omitempty"`
@@ -96,6 +103,7 @@ type ServiceReference struct {
 }
 
 type CompositeControllerHooks struct {
+	Customize *Hook `json:"customize,omitempty"`
 	Sync     *Hook `json:"sync,omitempty"`
 	Finalize *Hook `json:"finalize,omitempty"`
 
@@ -165,6 +173,13 @@ type DecoratorController struct {
 	Status DecoratorControllerStatus `json:"status,omitempty"`
 }
 
+func (dc *DecoratorController) GetCustomizeHook() *Hook {
+	if dc.Spec.Hooks == nil {
+		return nil
+	}
+	return dc.Spec.Hooks.Customize
+}
+
 type DecoratorControllerSpec struct {
 	Resources   []DecoratorControllerResourceRule   `json:"resources"`
 	Attachments []DecoratorControllerAttachmentRule `json:"attachments,omitempty"`
@@ -195,8 +210,9 @@ type DecoratorControllerAttachmentUpdateStrategy struct {
 }
 
 type DecoratorControllerHooks struct {
-	Sync     *Hook `json:"sync,omitempty"`
-	Finalize *Hook `json:"finalize,omitempty"`
+	Customize *Hook `json:"customize,omitempty"`
+	Sync      *Hook `json:"sync,omitempty"`
+	Finalize  *Hook `json:"finalize,omitempty"`
 }
 
 type DecoratorControllerStatus struct {
@@ -208,4 +224,11 @@ type DecoratorControllerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 	Items           []DecoratorController `json:"items"`
+}
+
+type RelatedResourceRule struct {
+	ResourceRule    `json:",inline"`
+	*metav1.LabelSelector `json:"labelSelector"`
+	Namespace string `json:"namespace,omitempty"`
+	Names    []string `json:"names"`
 }
