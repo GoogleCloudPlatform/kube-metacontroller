@@ -21,6 +21,7 @@ function(request) {
             local parts = std.split(portnums, ":"),
             port: std.parseInt(parts[0]),
             targetPort: std.parseInt(parts[1]),
+            name: parts[0]
           }
           for portnums in std.split(ports, ",")
         ]
