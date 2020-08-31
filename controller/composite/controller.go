@@ -502,6 +502,40 @@ func (pc *parentController) syncParentObject(parent *unstructured.Unstructured) 
 		}
 	}
 
+	// If enabled ensure all desired child resource types are automatically added to CompositeController
+	if pc.cc.Spec.AutoAddChildResources != nil && *pc.cc.Spec.AutoAddChildResources {
+		newCCChildResourcesRules := make([]v1alpha1.CompositeControllerChildResourceRule, 0)
+		inPlaceUpdateStrategy := &v1alpha1.CompositeControllerChildUpdateStrategy{
+			Method: v1alpha1.ChildUpdateInPlace,
+		}
+		for group := range desiredChildren {
+			if _, found := observedChildren[group]; ! found {
+				missingChildResource := pc.resources.GetKind(common.ParseChildMapKey(group))
+				if missingChildResource == nil {
+					glog.V(4).Infof("Did not find desired childResource %v created by CC %v for %v/%v: ignoring", group, pc.cc.Name, parent.GetNamespace(), parent.GetName())
+				} else {
+					missingChildResourceRule := v1alpha1.CompositeControllerChildResourceRule{
+						ResourceRule: v1alpha1.ResourceRule{
+							APIVersion: missingChildResource.APIVersion,
+							Resource: missingChildResource.Name,
+						},
+						UpdateStrategy: inPlaceUpdateStrategy,
+					}
+					newCCChildResourcesRules = append(newCCChildResourcesRules, missingChildResourceRule)
+					glog.V(4).Infof("Adding missing childResource %v to CC %v", missingChildResource.Name, pc.cc.Name)
+				}
+			}
+		}
+		if len(newCCChildResourcesRules) > 0 {
+			newCC := pc.cc.DeepCopy()
+			newCC.Spec.ChildResources = append(newCC.Spec.ChildResources, newCCChildResourcesRules...)
+			client := pc.mcClient.MetacontrollerV1alpha1().CompositeControllers()
+			if _, err := client.Update(newCC); err != nil {
+				return fmt.Errorf("Failed to update childResources on CC %v", pc.cc.GetName())
+			}
+		}
+	}
+
 	// Update parent status.
 	// We'll want to make sure this happens after manageChildren once we support observedGeneration.
 	if _, err := pc.updateParentStatus(parent, syncResult.Status); err != nil {

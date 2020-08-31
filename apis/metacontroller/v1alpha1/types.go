@@ -40,8 +40,9 @@ type CompositeControllerSpec struct {
 
 	Hooks *CompositeControllerHooks `json:"hooks,omitempty"`
 
-	ResyncPeriodSeconds *int32 `json:"resyncPeriodSeconds,omitempty"`
-	GenerateSelector    *bool  `json:"generateSelector,omitempty"`
+	ResyncPeriodSeconds 	*int32 `json:"resyncPeriodSeconds,omitempty"`
+	GenerateSelector    	*bool  `json:"generateSelector,omitempty"`
+	AutoAddChildResources   *bool  `json:"autoAddChildResources,omitempty"`
 }
 
 type ResourceRule struct {
