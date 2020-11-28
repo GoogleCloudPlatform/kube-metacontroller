@@ -53,6 +53,7 @@ The `relatedResources` field should contain a flat list of objects,
 not an associative array.
 
 Each resource rule object should be a JSON object with the following fields:
+
 | Field | Description |
 | ----- | ----------- |
 | `apiVersion` | The API `<group>/<version>` of the parent resource, or just `<version>` for core APIs. (e.g. `v1`, `apps/v1`, `batch/v1`) |
