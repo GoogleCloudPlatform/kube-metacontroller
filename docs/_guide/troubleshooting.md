@@ -15,7 +15,7 @@ the Metacontroller server itself.
 For example, you can fetch the last 25 lines with a command like this:
 
 ```sh
-kubectl -n metacontroller logs --tail=25 -l app=metacontroller
+kubectl -n metacontroller logs --tail=25 -l app.kubernetes.io/name=metacontroller
 ```
 
 ### Log Levels
